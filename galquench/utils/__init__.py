@@ -1,1 +1,1 @@
-from .illustris_groupcats import (loadHalos, loadSubhalos)
+from .illustris_parse_groupcats import (loadHalos, loadSubhalos)
