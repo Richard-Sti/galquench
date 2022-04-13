@@ -1,10 +1,10 @@
 """ Illustris Simulation: Public Data Release.
 snapshot.py: File I/O related to the snapshot files. """
-from __future__ import print_function
 from os.path import isfile
-import numpy as np
 import h5py
 import six
+
+import numpy as np
 
 
 def gcPath(basePath, snapNum, chunkNum=0):
