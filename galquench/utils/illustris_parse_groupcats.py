@@ -104,13 +104,12 @@ def loadSubhalos(basePath, snapNum, fields=None):
     if isinstance(fields, list) and len(fields) == 1:
         fields = fields[0]
 
+
     subhalos = loadObjects(basePath, snapNum, "Subhalo", "subgroups", fields)
     if fields is None:
         return subhalos
     if isinstance(fields, str):
         return {fields: subhalos}
-    # Get rid of the count
-    subhalos.pop("count", None)
     return subhalos
 
 
