@@ -3,30 +3,30 @@ import numpy
 import h5py
 
 
-def subhalos_to_array(subhalos, legend):
-    # Will be popping so deepcopy
-    legend = deepcopy(legend)
-    # Extrac the data
-    out = {}
-    for leg in legend:
-        param, col = leg
-        data = subhalos[param]
-        # If a column was specified take only that
-        if col is not None:
-            data = data[:, col]
-            param += "_{}".format(col)
-        out.update({param: data})
+def read_supplementary(file, subfindID, keys=None, skip_keys=None,
+                       snapshot_number=None):
+    """
+    Read a supplementary TNG catalogue, assumed in `hdf5` format and return
+    specific keys along with the corresponding subhalo IDs.
 
-    # Convert to a structured array
-    dtype = {'names': [key for key in out.keys()],
-             'formats': [d.dtype for d in out.values()]}
-    arr = numpy.zeros(data.size, dtype=dtype)
-    for key, val in out.items():
-        arr[key] = val
-    return arr
+    Arguments
+    ---------
+    file : str or :py:class:`h5py._hl.files.File`
+        File (path).
+    keys : (list of) str, optional
+        Keys to be returned. By default `None`, all keys are returned.
+    skip_keys : (list of) str, optional
+        Keys to be skipped if e.g. all keys are to be returned. By default
+        `None`, no keys are skipped.
+    snapshot_numer : int, optional
+        The snapshot number. If `None` assumed that the specified file is
+        already for a given snapshot.
 
-
-def read_supplementary(file, subfindID, keys=None, skip_keys=None, snapshot_number=None):
+    Returns
+    -------
+    out : dict
+        Dictionary with the requested data.
+    """
     data = h5py.File(file, "r")
     # Get the snapshot
     if snapshot_number is not None:
@@ -57,5 +57,8 @@ def read_supplementary(file, subfindID, keys=None, skip_keys=None, snapshot_numb
     # Put into a dictionary and return
     out = {"subfindID": numpy.asarray(data[subfindID]).astype(int)}
     for key in keys:
-        out.update({key: numpy.asarray(data[key])})
+        d = data[key]
+        if isinstance(d, h5py._hl.dataset.Dataset):
+            d = numpy.asarray(d)
+        out.update({key: d})
     return out
