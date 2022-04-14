@@ -35,16 +35,33 @@ def read_supplementary(file, subfindID, keys=None, skip_keys=None,
             raise ValueError("Invalid snapshot number `{}`".format(snapshot_number))
         # Get just this snapshot
         data = data[snapshot]
-    # Check if a specific key(s) given
+    # Check that this is not a snapshot file
+    if any("Snapshot_" in key for key in data.keys()):
+        raise ValueError("This appears to be a file with snapshots. "
+                         "Specify `snapshot_number`.")
+    # Get keys
     if keys is None:
         keys = list(data.keys())
-        keys.remove(subfindID)
     elif isinstance(keys, str):
         keys = [keys]
+    elif isinstance(keys, list) and all(isinstance(key, str) for key in keys):
+        pass
     else:
-        for key in keys:
-            if key not in data.keys():
-                raise ValueError("Invalid key `{}`.".format(key))
+        raise ValueError("`keys` must be either a string or a list of strings.")
+
+    #Check that we have a good subfind key
+    if subfindID not in data.keys():
+        suggestions = [key for key in data.keys() if "id" in key.lower()]
+        raise ValueError("subfindID of `{}` is invalid. Possibly one of `{}`."
+                         .format(subfindID, suggestions))
+    # Remove subfind ID from the list of keys
+    if subfindID in keys:
+        keys.remove(subfindID)
+
+    # Check that all keys are in the data file
+    for key in keys:
+        if key not in data.keys():
+            raise ValueError("Invalid key `{}`.".format(key))
 
     # If any skip keys, remove them
     if skip_keys is not None:
