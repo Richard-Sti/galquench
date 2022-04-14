@@ -79,3 +79,58 @@ def read_supplementary(file, subfindID, keys=None, skip_keys=None,
             d = numpy.asarray(d)
         out.update({key: d})
     return out
+
+
+def unpack_catalog_columns(catalog, column_mapping):
+    fields = [
+        key for key in catalog.keys() if key not in ["count", "subfindID"]]
+    for field in fields:
+        if not isinstance(catalog[field], numpy.ndarray):
+            raise TypeError("Field `{}` is not an array.".format(field))
+
+        if catalog[field].ndim == 1:
+            continue
+
+        if field not in column_mapping.keys():
+            raise RuntimeError("Column information for field `{}` required."
+                               .format(field))
+
+        columns = column_mapping[field]
+        if not isinstance(columns, (list, tuple)):
+            cols = [cols]
+
+        data = catalog.pop(field)
+        for column in columns:
+            catalog.update({field + "_{}".format(column): data[:, column]})
+    return catalog
+
+
+def match_subfind(catalogs, N):
+    for cat in catalogs:
+        for key in cat.keys():
+            if key == "subfindID":
+                continue
+            data = cat[key]
+            full = numpy.full(N, fill_value=numpy.nan, dtype=data.dtype)
+            full[cat["subfindID"]] = data
+            cat.update({key: full})
+
+    for cat in catalogs:
+        cat.pop("subfindID")
+    return catalogs
+
+
+def merge_subhalos_with_supplementary(subhalos, supplementary_cats):
+    N = subhalos.pop("count")
+    dtype = {"names": [], "formats": []}
+    for cat in [subhalos] + supplementary_cats:
+        for key, value in cat.items():
+            dtype["names"].append(key)
+            dtype["formats"].append(value.dtype.type)
+
+    arr = numpy.full(N, numpy.nan, dtype=dtype)
+
+    for cat in [subhalos] + supplementary_cats:
+        for key, value in cat.items():
+            arr[key] = value
+    return arr
