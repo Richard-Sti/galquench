@@ -1,6 +1,7 @@
 # Interpreting galaxy quenching with machine learning
 
+.. in TNG.
 
 ## TO DO
-- [ ] Add possibility for a conversion factor (units)
-- [ ] Add a script that applies selection to the array
+- [ ] Link the paper repository
+- [ ] Get the TNG300 supplementary catalogues.
