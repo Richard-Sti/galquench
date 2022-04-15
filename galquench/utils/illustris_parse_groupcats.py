@@ -101,8 +101,15 @@ def loadSubhalos(basePath, snapNum, fields=None):
     Load all subhalo information from the entire group catalog for one
     snapshot (optionally restrict to a subset given by fields).
     """
+    if isinstance(fields, list) and len(fields) == 1:
+        fields = fields[0]
 
-    return loadObjects(basePath, snapNum, "Subhalo", "subgroups", fields)
+    subhalos = loadObjects(basePath, snapNum, "Subhalo", "subgroups", fields)
+    if fields is None:
+        return subhalos
+    if isinstance(fields, str):
+        return {fields: subhalos}
+    return subhalos
 
 
 def loadHalos(basePath, snapNum, fields=None):
