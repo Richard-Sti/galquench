@@ -33,12 +33,12 @@ subhalos_file.update({"fields": subhalos_field})
 
 
 supplementary_files = [
-    {"file" : folder + "star_formation_rates.hdf5",
+    {"file": folder + "star_formation_rates.hdf5",
      "subfindID": "SubfindID",
      "snapshot_number": 99,
      "keys": ["SFR_MsunPerYrs_in_all_1000Myrs"]},
     #
-    {"file" : folder + "hih2_galaxy_099.hdf5",
+    {"file": folder + "hih2_galaxy_099.hdf5",
      "subfindID": "id_subhalo",
      "keys": ["m_neutral_H"]}
     ]
@@ -51,8 +51,8 @@ supplementary_files = [
 
 multiplicative_units = {"SubhaloMass": 1e10}
 column_mapping = {"SubhaloMassType": (1, 4)}
-selection = {"SubhaloMassType_1" : (0, 1e12),
-             "SubhaloMassType_4" : (0, 1e12)}
+selection = {"SubhaloMassType_1": (0, 1e12),
+             "SubhaloMassType_4": (0, 1e12)}
 
 
 ###############################################################################
