@@ -33,7 +33,8 @@ def read_supplementary(file, subfindID, keys=None, skip_keys=None,
     if snapshot_number is not None:
         snapshot = "Snapshot_{}".format(snapshot_number)
         if snapshot not in data.keys():
-            raise ValueError("Invalid snapshot number `{}`".format(snapshot_number))
+            raise ValueError("Invalid snapshot number `{}`"
+                             .format(snapshot_number))
         # Get just this snapshot
         data = data[snapshot]
     # Check that this is not a snapshot file
@@ -48,9 +49,10 @@ def read_supplementary(file, subfindID, keys=None, skip_keys=None,
     elif isinstance(keys, list) and all(isinstance(key, str) for key in keys):
         pass
     else:
-        raise ValueError("`keys` must be either a string or a list of strings.")
+        raise ValueError("`keys` must be either a string or a list "
+                         "of strings.")
 
-    #Check that we have a good subfind key
+    # Check that we have a good subfind key
     if subfindID not in data.keys():
         suggestions = [key for key in data.keys() if "id" in key.lower()]
         raise ValueError("subfindID of `{}` is invalid. Possibly one of `{}`."
@@ -122,7 +124,8 @@ def match_subfind(catalogs, N):
     Returns
     -------
     catalogs : list of dictionaries
-        Supplementetary catalogs whose array ordering matched the subfind table.
+        Supplementetary catalogs whose array ordering matched the subfind
+        table.
     """
     # Optionally convert to a list if only one catalog passed in
     if not isinstance(catalogs, list):
@@ -167,7 +170,7 @@ def merge_subhalos_with_supplementary(subhalos, supplementary_catalogs):
     """
     if not isinstance(subhalos, dict):
         raise TypeError("`subhalos` must be a dictionary.")
-    if not all(isinstance(catalog, dict) for catalog in supplementary_catalogs):
+    if not all(isinstance(cat, dict) for cat in supplementary_catalogs):
         raise TypeError("`supplementray_cats` must be a list of dictionaries.")
 
     N = subhalos.pop("count", None)
