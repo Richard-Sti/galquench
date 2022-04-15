@@ -1,4 +1,5 @@
 from copy import deepcopy
+from warnings import warn
 import numpy
 import h5py
 
@@ -106,31 +107,144 @@ def unpack_catalog_columns(catalog, column_mapping):
 
 
 def match_subfind(catalogs, N):
-    for cat in catalogs:
-        for key in cat.keys():
+    """
+    Match data from supplementary catalogs by the subfind IDs by creating
+    a 1-dimensional array with data at positions specified by `subfindID` and
+    NaNs elsewhere.
+
+    Arguments
+    ---------
+    catalogs : list of dictionaries
+        Supplementary catalogs from py:func:`read_supplementary`.
+    N : int
+        Count of subfind halos at the specified snapshot.
+
+    Returns
+    -------
+    catalogs : list of dictionaries
+        Supplementetary catalogs whose array ordering matched the subfind table.
+    """
+    # Optionally convert to a list if only one catalog passed in
+    if not isinstance(catalogs, list):
+        catalogs = list(catalogs)
+    # Check everything is a dictionary
+    if not all(isinstance(catalog, dict) for catalog in catalogs):
+        raise TypeError("Entries of `catalogs` must be dictionaries.")
+    for catalog in catalogs:
+        for key in catalog.keys():
+            # Ignore subfind ID
             if key == "subfindID":
                 continue
-            data = cat[key]
+            # Convert to an array matchign the sublos with the subfind IDs
+            # Put NaNs where no entry in this supplementary catalog
+            data = catalog[key]
             full = numpy.full(N, fill_value=numpy.nan, dtype=data.dtype)
-            full[cat["subfindID"]] = data
-            cat.update({key: full})
-
-    for cat in catalogs:
-        cat.pop("subfindID")
+            full[catalog["subfindID"]] = data
+            catalog.update({key: full})
+    # Now that we matched by subfindID drop it
+    for catalog in catalogs:
+        catalog.pop("subfindID")
     return catalogs
 
 
-def merge_subhalos_with_supplementary(subhalos, supplementary_cats):
-    N = subhalos.pop("count")
+def merge_subhalos_with_supplementary(subhalos, supplementary_catalogs):
+    """
+    Merge the `subhalos` dictionary with `supplementary_cats` dictionaries
+    which have been rearranged by their subfind IDs via
+    py:func:`match_subfind`.
+
+    Arguments
+    ---------
+    subhalos : dict
+        Subhalos dictionary from py:func:`loadSubhalos`.
+    supplementary_catalogs : list of dictionaries
+        Supplementary catalogs matched by their subfind IDs.
+
+    Returns
+    -------
+    arr : structured array
+        Single structured array with the merged data.
+    """
+    if not isinstance(subhalos, dict):
+        raise TypeError("`subhalos` must be a dictionary.")
+    if not all(isinstance(catalog, dict) for catalog in supplementary_catalogs):
+        raise TypeError("`supplementray_cats` must be a list of dictionaries.")
+
+    N = subhalos.pop("count", None)
+    if N is None:
+        raise ValueError("Subhaloes must contain key `count`.")
+    # Get the dtypes
     dtype = {"names": [], "formats": []}
-    for cat in [subhalos] + supplementary_cats:
-        for key, value in cat.items():
+    for catalog in [subhalos] + supplementary_catalogs:
+        for key, value in catalog.items():
             dtype["names"].append(key)
             dtype["formats"].append(value.dtype.type)
-
+    # Initialise the array and fill it
     arr = numpy.full(N, numpy.nan, dtype=dtype)
-
-    for cat in [subhalos] + supplementary_cats:
-        for key, value in cat.items():
+    for catalog in [subhalos] + supplementary_catalogs:
+        for key, value in catalog.items():
             arr[key] = value
     return arr
+
+
+def apply_multiplicative_units(array, units):
+    """
+    Apply multiplicative units, if such unit is specified in `array`.
+
+    Arguments
+    ---------
+    array : structured array
+        Structured array with data.
+    units : dict
+        Dictionary where keys are the parameters (of `array`) are to be
+        multiplied by their value.
+
+    """
+    for name in array.dtype.names:
+        for unit, factor in units.items():
+            if unit.lower() in name.lower():
+                msg = "Multiplying `{}` by {}.".format(name, factor)
+                warn(msg, RuntimeWarning)
+                array[name] *= factor
+    return array
+
+
+def apply_selection(array, selection, only_finite=False):
+    """
+    Apply lower and upper limit selection to array.
+
+    Arguments
+    ---------
+    array : structured array
+        Structured array with data to be selected.
+    selection : dict
+        Keys must be parameters and values the upper and lower limit.
+    only_finite : bool, optional
+        Whether to remove all samples that contain a NaN in any parameter.
+        By default `False`.
+
+    out : structured array
+        Data array with selection applied.
+    """
+    masks = [None] * len(selection)
+    for i, (par, lims) in enumerate(selection.items()):
+        # Checks lims specified in a good format
+        if not isinstance(lims, (tuple, list)) or len(lims) != 2:
+            raise TypeError("`lims` of parameter `{}` must be a list or "
+                            "tuple of length 2".format(par))
+        lower, upper = lims
+        masks[i] = (lower < array[par]) & (array[par] < upper)
+
+    if only_finite:
+        for param in array.dtype.names:
+            masks.append(numpy.isfinite(array[param]))
+
+    final_mask = masks[0]
+    if len(masks) > 1:
+        for mask in masks[1:]:
+            final_mask &= mask
+    Nrem = numpy.sum(~final_mask)
+    N = final_mask.size
+    warn("Removing {} ({:.2f}%) objects.".format(Nrem, Nrem / N * 100))
+
+    return array[final_mask]
